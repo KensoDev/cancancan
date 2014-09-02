@@ -1,6 +1,7 @@
 require "cancan/version"
 require 'cancan/ability'
 require 'cancan/rule'
+require 'cancan/contextual_rule'
 require 'cancan/controller_resource'
 require 'cancan/controller_additions'
 require 'cancan/model_additions'

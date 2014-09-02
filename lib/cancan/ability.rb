@@ -71,6 +71,23 @@ module CanCan
 
       match ? match.base_behavior : false
     end
+
+    def contextual_can?(action, subject, context, *extra_args)
+      subject = extract_subjects(subject)
+
+      puts "Subject: #{subject}"
+
+      match = subject.map do |subject|
+        relevant_rules_for_match(action, subject, context).detect do |rule|
+          puts "rule: #{rule}"
+          rule.matches_conditions?(action, subject, context)
+        end
+      end.compact.first
+
+      match ? match.base_behavior : false
+    end
+
+
     # Convenience method which works the same as "can?" but returns the opposite value.
     #
     #   cannot? :destroy, @project
@@ -134,6 +151,10 @@ module CanCan
     #
     def can(action = nil, subject = nil, conditions = nil, &block)
       rules << Rule.new(true, action, subject, conditions, block)
+    end
+
+    def contextual_can(action = nil, subject = nil, context = nil, &block)
+      contextual_rules << ContextualRule.new(true, action, subject, context, block)
     end
 
     # Defines an ability which cannot be done. Accepts the same arguments as "can".
@@ -283,7 +304,10 @@ module CanCan
       @expanded_actions ||= {}
     end
 
-    # It translates to an array the subject or the hash with multiple subjects given to can?.
+    #
+    # It translates to an array the subject or the 
+    # hash with multiple subjects given to can?.
+    #
     def extract_subjects(subject)
       subject = if subject.kind_of?(Hash) && subject.key?(:any)
         subject[:any]
@@ -306,19 +330,33 @@ module CanCan
       @rules ||= []
     end
 
+    def contextual_rules
+      @contextual_rules ||= []
+    end
+
     # Returns an array of Rule instances which match the action and subject
     # This does not take into consideration any hash conditions or block statements
-    def relevant_rules(action, subject)
+    def relevant_rules(action, subject, context = nil)
+      rules = context.blank? ? rules : contextual_rules
+
       relevant = rules.select do |rule|
         rule.expanded_actions = expand_actions(rule.actions)
-        rule.relevant? action, subject
+
+        contextual = rule.respond_to?(:contextual)
+
+        if contextual
+          rule.relevant? action, subject, context
+        else
+          rule.relevant? action, subject
+        end
       end
+
       relevant.reverse!
       relevant
     end
 
-    def relevant_rules_for_match(action, subject)
-      relevant_rules(action, subject).each do |rule|
+    def relevant_rules_for_match(action, subject, context = nil)
+      relevant_rules(action, subject, context).each do |rule|
         if rule.only_raw_sql?
           raise Error, "The can? and cannot? call cannot be used with a raw sql 'can' definition. The checking code cannot be determined for #{action.inspect} #{subject.inspect}"
         end

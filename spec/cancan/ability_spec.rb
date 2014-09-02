@@ -1,8 +1,33 @@
 require "spec_helper"
 
+class FakeUser
+  attr_reader :id
+
+  def initialize(id)
+    @id = id
+  end
+
+  def can_remove?(user)
+    self.id == 1 && user.id == 2
+  end
+end
+
 describe CanCan::Ability do
   before(:each) do
     (@ability = double).extend(CanCan::Ability)
+  end
+
+  context "Complex abilities" do
+    it 'enables to contextually tie 2 objects together' do
+      fake_user = FakeUser.new(1)
+      another_fake_user = FakeUser.new(2)
+
+      @ability.contextual_can(:remove, fake_user, another_fake_user) do |a,b|
+        a.can_remove?(b)
+      end
+
+      expect(@ability.contextual_can?(:remove, fake_user, another_fake_user)).to be(true)
+    end
   end
 
   it "is able to :read anything" do
