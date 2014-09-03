@@ -1,6 +1,12 @@
 require "spec_helper"
 
 
+class DifferentFakeContext
+  def invited_by(user)
+    []
+  end
+end
+
 class FakeContext
   def invited_by(user)
     [
@@ -27,11 +33,17 @@ describe CanCan::Ability do
       user      = FakeUser.new(1)
       fake_user = FakeUser.new(2)
       context   = FakeContext.new
+      dif_context = DifferentFakeContext.new
 
       @ability.contextual_can(:remove, FakeUser, FakeContext) do |fake_user, fake_context|
         fake_context.invited_by(user).include?(fake_user.id)
       end
 
+      @ability.contextual_can(:remove, FakeUser, DifferentFakeContext) do |fake_user, dif_fake_context|
+        throw "x" # This should not be thrown
+      end
+
+      expect(@ability.contextual_can?(:remove, user, context)).to be(false)
       expect(@ability.contextual_can?(:remove, fake_user, context)).to be(true)
     end
   end

@@ -10,7 +10,7 @@ module CanCan
 
     def relevant?(action, subject, context)
       subject = subject.values.first if subject.class == Hash
-      @match_all || (matches_action?(action) && matches_subject?(subject))
+      @match_all || (matches_action?(action) && matches_subject?(subject)) && matches_context?(context)
     end
 
     def matches_context?(context)
