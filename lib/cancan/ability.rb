@@ -75,11 +75,8 @@ module CanCan
     def contextual_can?(action, subject, context, *extra_args)
       subject = extract_subjects(subject)
 
-      puts "Subject: #{subject}"
-
       match = subject.map do |subject|
         relevant_rules_for_match(action, subject, context).detect do |rule|
-          puts "rule: #{rule}"
           rule.matches_conditions?(action, subject, context)
         end
       end.compact.first
@@ -154,7 +151,7 @@ module CanCan
     end
 
     def contextual_can(action = nil, subject = nil, context = nil, &block)
-      contextual_rules << ContextualRule.new(true, action, subject, context, block)
+      rules(context) << ContextualRule.new(true, action, subject, context, block)
     end
 
     # Defines an ability which cannot be done. Accepts the same arguments as "can".
@@ -326,20 +323,18 @@ module CanCan
       results
     end
 
-    def rules
-      @rules ||= []
-    end
-
-    def contextual_rules
-      @contextual_rules ||= []
+    def rules(context = nil)
+      if context
+        @contextual_rules ||= []
+      else
+        @rules ||= []
+      end
     end
 
     # Returns an array of Rule instances which match the action and subject
     # This does not take into consideration any hash conditions or block statements
     def relevant_rules(action, subject, context = nil)
-      rules = context.blank? ? rules : contextual_rules
-
-      relevant = rules.select do |rule|
+      relevant = rules(context).select do |rule|
         rule.expanded_actions = expand_actions(rule.actions)
 
         contextual = rule.respond_to?(:contextual)

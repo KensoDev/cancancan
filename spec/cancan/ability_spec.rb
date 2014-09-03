@@ -1,14 +1,19 @@
 require "spec_helper"
 
+
+class FakeContext
+  def invited_by(user)
+    [
+      2
+    ]
+  end
+end
+
 class FakeUser
   attr_reader :id
 
   def initialize(id)
     @id = id
-  end
-
-  def can_remove?(user)
-    self.id == 1 && user.id == 2
   end
 end
 
@@ -19,14 +24,15 @@ describe CanCan::Ability do
 
   context "Complex abilities" do
     it 'enables to contextually tie 2 objects together' do
-      fake_user = FakeUser.new(1)
-      another_fake_user = FakeUser.new(2)
+      user      = FakeUser.new(1)
+      fake_user = FakeUser.new(2)
+      context   = FakeContext.new
 
-      @ability.contextual_can(:remove, fake_user, another_fake_user) do |a,b|
-        a.can_remove?(b)
+      @ability.contextual_can(:remove, FakeUser, FakeContext) do |fake_user, fake_context|
+        fake_context.invited_by(user).include?(fake_user.id)
       end
 
-      expect(@ability.contextual_can?(:remove, fake_user, another_fake_user)).to be(true)
+      expect(@ability.contextual_can?(:remove, fake_user, context)).to be(true)
     end
   end
 
